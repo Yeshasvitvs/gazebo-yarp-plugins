@@ -23,8 +23,9 @@ service ObjectAttacher {
     
     /**
     * Detach a previously attached object.
-    * @param id string that identifies object in gazebo (returned after creation)
+    * @param object_name string that identifies object in gazebo (returned after creation)
+    * @param object_link_name object link to be detached
     * @return true if success, false otherwise
     */
-    bool detach(1:string id);
+    bool detach(1:string object_name, 2:string object_link_name);
 }

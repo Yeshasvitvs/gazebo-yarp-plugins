@@ -31,9 +31,10 @@ public:
 
 class ObjectAttacher_detach : public yarp::os::Portable {
 public:
-  std::string id;
+  std::string object_name;
+  std::string object_link_name;
   bool _return;
-  void init(const std::string& id);
+  void init(const std::string& object_name, const std::string& object_link_name);
   virtual bool write(yarp::os::ConnectionWriter& connection);
   virtual bool read(yarp::os::ConnectionReader& connection);
 };
@@ -94,9 +95,10 @@ void ObjectAttacher_attach::init(const std::string& object_name, const std::stri
 
 bool ObjectAttacher_detach::write(yarp::os::ConnectionWriter& connection) {
   yarp::os::idl::WireWriter writer(connection);
-  if (!writer.writeListHeader(2)) return false;
+  if (!writer.writeListHeader(3)) return false;
   if (!writer.writeTag("detach",1,1)) return false;
-  if (!writer.writeString(id)) return false;
+  if (!writer.writeString(object_name)) return false;
+  if (!writer.writeString(object_link_name)) return false;
   return true;
 }
 
@@ -110,9 +112,10 @@ bool ObjectAttacher_detach::read(yarp::os::ConnectionReader& connection) {
   return true;
 }
 
-void ObjectAttacher_detach::init(const std::string& id) {
+void ObjectAttacher_detach::init(const std::string& object_name, const std::string& object_link_name) {
   _return = false;
-  this->id = id;
+  this->object_name = object_name;
+  this->object_link_name = object_link_name;
 }
 
 ObjectAttacher::ObjectAttacher() {
@@ -138,12 +141,12 @@ bool ObjectAttacher::attach(const std::string& object_name, const std::string& o
   bool ok = yarp().write(helper,helper);
   return ok?helper._return:_return;
 }
-bool ObjectAttacher::detach(const std::string& id) {
+bool ObjectAttacher::detach(const std::string& object_name, const std::string& object_link_name) {
   bool _return = false;
   ObjectAttacher_detach helper;
-  helper.init(id);
+  helper.init(object_name,object_link_name);
   if (!yarp().canWrite()) {
-    yError("Missing server method '%s'?","bool ObjectAttacher::detach(const std::string& id)");
+    yError("Missing server method '%s'?","bool ObjectAttacher::detach(const std::string& object_name, const std::string& object_link_name)");
   }
   bool ok = yarp().write(helper,helper);
   return ok?helper._return:_return;
@@ -211,13 +214,18 @@ bool ObjectAttacher::read(yarp::os::ConnectionReader& connection) {
       return true;
     }
     if (tag == "detach") {
-      std::string id;
-      if (!reader.readString(id)) {
+      std::string object_name;
+      std::string object_link_name;
+      if (!reader.readString(object_name)) {
+        reader.fail();
+        return false;
+      }
+      if (!reader.readString(object_link_name)) {
         reader.fail();
         return false;
       }
       bool _return;
-      _return = detach(id);
+      _return = detach(object_name,object_link_name);
       yarp::os::idl::WireWriter writer(reader);
       if (!writer.isNull()) {
         if (!writer.writeListHeader(1)) return false;
@@ -283,9 +291,10 @@ std::vector<std::string> ObjectAttacher::help(const std::string& functionName) {
       helpString.push_back("@return true if success, false otherwise ");
     }
     if (functionName=="detach") {
-      helpString.push_back("bool detach(const std::string& id) ");
+      helpString.push_back("bool detach(const std::string& object_name, const std::string& object_link_name) ");
       helpString.push_back("Detach a previously attached object. ");
-      helpString.push_back("@param id string that identifies object in gazebo (returned after creation) ");
+      helpString.push_back("@param object_name string that identifies object in gazebo (returned after creation) ");
+      helpString.push_back("@param object_link_name object link to be detached ");
       helpString.push_back("@return true if success, false otherwise ");
     }
     if (functionName=="help") {

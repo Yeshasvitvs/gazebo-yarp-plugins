@@ -47,7 +47,7 @@ namespace gazebo
      * @param id string that identifies object in gazebo (returned after creation)
      * @return true if success, false otherwise
      */
-     virtual bool detach(const std::string& id);
+     virtual bool detach(const std::string& object_name, const std::string& object_link_name);
      
      /**
      * Enable/disables gravity for an object

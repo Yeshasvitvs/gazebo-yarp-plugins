@@ -47,7 +47,7 @@ bool ObjectAttacherServer::attach(const string& object_name, const std::string& 
     
     //This is joint creation
     gazebo::physics::JointPtr joint;
-    joint = _world->GetPhysicsEngine()->CreateJoint("revolute",object_model);
+    joint = _world->GetPhysicsEngine()->CreateJoint("fixed",object_model);
     if(!joint)
     {
         yError() << "Unable to create joint";
@@ -77,27 +77,42 @@ bool ObjectAttacherServer::attach(const string& object_name, const std::string& 
 }
 
 //Takes object model name and object link name
-bool ObjectAttacherServer::detach(const string& id)
+bool ObjectAttacherServer::detach(const string& object_name, const std::string& object_link_name)
 {
-    gazebo::physics::ModelPtr object_model = _world->GetModel(id);
+    gazebo::physics::ModelPtr object_model = _world->GetModel(object_name);
     if(!object_model)
     {
-        yError() << "Object " << id << " does not exist in gazebo";
+        yError() << "Object " << object_name << " does not exist in gazebo";
         return false;
     }
+    else yInfo() << "Object " << object_model->GetName() << " found";
     
-    yError() << "^^" << object_model->GetJointCount();
+    //yError() << "^^" << object_model->GetJointCount();
     
-    gazebo::physics::LinkPtr object_link = object_model->GetLink("link");
-    //gazebo::physics::JointPtr j = object_link->GetJoint("magnet_joint");
-    
-    gazebo::physics::JointPtr joint = object_model->GetJoint("magnet_joint");
-    if(!joint)
+    gazebo::physics::LinkPtr object_link = object_model->GetLink(object_link_name);
+    if(!object_link)
     {
-        yError() << "Joint not found";
-       return false;
+        yError() << "Object link " << object_link_name << " is not found";
+        return false;
     }
+    else yInfo() << "Object link " << object_link->GetName() << " found";
     
+    //Get all the joints at the object link
+    gazebo::physics::Joint_V joints_v = object_link->GetChildJoints();
+    
+    for(int i=0; i < joints_v.size(); i++)
+    {
+        std::string candidate_joint_name = joints_v[i]->GetScopedName();
+        if(candidate_joint_name == "magnet_joint")
+        {
+            gazebo::physics::JointPtr joint = joints_v[i];
+            if(!joint)
+            {
+                yError() << "Joint not found";
+                return false;
+            }
+        }
+    } 
     return true;
 
 }

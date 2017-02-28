@@ -33,10 +33,11 @@ public:
   virtual bool attach(const std::string& object_name, const std::string& object_link_name, const std::string& robot_name, const std::string& robot_link_name);
   /**
    * Detach a previously attached object.
-   * @param id string that identifies object in gazebo (returned after creation)
+   * @param object_name string that identifies object in gazebo (returned after creation)
+   * @param object_link_name object link to be detached
    * @return true if success, false otherwise
    */
-  virtual bool detach(const std::string& id);
+  virtual bool detach(const std::string& object_name, const std::string& object_link_name);
   virtual bool read(yarp::os::ConnectionReader& connection);
   virtual std::vector<std::string> help(const std::string& functionName="--all");
 };

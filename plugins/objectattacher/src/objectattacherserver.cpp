@@ -74,8 +74,11 @@ bool ObjectAttacherServer::attach(const string& object_name, const std::string& 
     joint->Load(object_link,robot_link,gazebo::math::Pose());
     //Attach(prent_link,child_link)
     joint->Attach(object_link,robot_link);
-    joint->SetHighStop(0,0);
-    joint->SetLowStop(0,0);
+    
+    //Used in case of revolute joint
+    //joint->SetHighStop(0,0);
+    //joint->SetLowStop(0,0);
+    //joint->SetLowerLimit(0,0);
     
     return true;
 }

@@ -36,49 +36,63 @@ bool ObjectAttacherServer::attach(const string& object_name, const std::string& 
     else yInfo() << "Attach --> Robot model " << robot_model->GetName() << " found";
     
     
-    
-    gazebo::physics::LinkPtr robot_link = robot_model->GetLink(robot_link_name);
-    if(!robot_link)
+    //Get the exact link with only link name instead of full_scoped_link_name
+    gazebo::physics::Link_V robot_model_links = robot_model->GetLinks();
+    for(int i=0; i < robot_model_links.size(); i++)
     {
-        yError() << "Attach --> Robot link " << robot_link_name << " is not found";
-        return false;
+        //E.g iCub::l_hand::l_hand_base_link
+
+        std::string candidate_robot_link_name = robot_model_links[i]->GetScopedName();
+        
+        //Display all the links
+        //yInfo() << "Attach --> Full scoped Candidate robot link name: " << candidate_robot_link_name << " found";
+        
+        std::size_t lastcolon = candidate_robot_link_name.rfind(":");
+        std::string unscoped_robot_link_name = candidate_robot_link_name.substr(lastcolon+1,std::string::npos);
+        //yInfo() << "Attach --> Unscoped robot link name " << unscoped_robot_link_name;
+        
+        if(unscoped_robot_link_name == robot_link_name)
+        {
+            yInfo() << "Attach --> Full scoped Candidate robot link name: " << candidate_robot_link_name << " found";
+            gazebo::physics::LinkPtr robot_link = robot_model_links[i];
+            if(!robot_link)
+            {
+                yError() << "Attach --> Robot link " << robot_link_name << " is not found";
+                return false;
+            }
+            else yInfo() << "Attach --> Robot link " << robot_link->GetName() << " found";
+            
+            //This is joint creation
+            gazebo::physics::JointPtr joint;
+            joint = _world->GetPhysicsEngine()->CreateJoint("fixed",object_model);
+            if(!joint)
+            {
+                yError() << "Attach --> Unable to create joint";
+                return false;
+            }
+            
+            std::string joint_name = object_link_name + "_magnet_joint";
+            joint->SetName(joint_name);
+            yInfo() << "Attach --> Magnet joint : " << joint->GetName() << " created";
+            
+            joint->SetModel(object_model);
+            joint->Load(object_link,robot_link,gazebo::math::Pose());
+            
+            //Attach(prent_link,child_link)
+            joint->Attach(object_link,robot_link);
+            
+            //Used in case of revolute joint
+            //joint->SetHighStop(0,0);
+            //joint->SetLowStop(0,0);
+            //joint->SetLowerLimit(0,0);
+            break; 
+        }
     }
-    else yInfo() << "Attach --> Robot link " << robot_link->GetName() << " found";
     
-    //This is joint creation
-    gazebo::physics::JointPtr joint;
-    joint = _world->GetPhysicsEngine()->CreateJoint("fixed",object_model);
-    if(!joint)
-    {
-        yError() << "Attach --> Unable to create joint";
-        return false;
-    }
     
-    if(!robot_link)   
-    {
-        yError() << "Attach --> Unable to get robot link: " << robot_link_name;
-        return false;
-    }
     
-    if(!object_link)
-    {
-        yError() << "Attach --> Unable to get object link: " << object_name;
-        return false;
-    }
     
-    std::string joint_name = object_link_name + "_magnet_joint";
-    joint->SetName(joint_name);
-    yInfo() << "Attach --> Magnet joint : " << joint->GetName() << " created";
     
-    joint->SetModel(object_model);
-    joint->Load(object_link,robot_link,gazebo::math::Pose());
-    //Attach(prent_link,child_link)
-    joint->Attach(object_link,robot_link);
-    
-    //Used in case of revolute joint
-    //joint->SetHighStop(0,0);
-    //joint->SetLowStop(0,0);
-    //joint->SetLowerLimit(0,0);
     
     return true;
 }
@@ -112,7 +126,7 @@ bool ObjectAttacherServer::detach(const string& object_name, const std::string& 
     for(int i=0; i < joints_v.size(); i++)
     {
         std::string candidate_joint_name = joints_v[i]->GetScopedName();
-        yInfo() << "Detach --> Child joint " << candidate_joint_name << " found";
+        //yInfo() << "Detach --> Child joint " << candidate_joint_name << " found";
         if(candidate_joint_name == joint_name)
         {
             gazebo::physics::JointPtr joint = joints_v[i];
@@ -133,7 +147,6 @@ bool ObjectAttacherServer::detach(const string& object_name, const std::string& 
     return true;
 
 }
-
 
 bool ObjectAttacherServer::enableGravity(const std::string& id, const bool enable)
 {

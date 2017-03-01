@@ -15,60 +15,64 @@ bool ObjectAttacherServer::attach(const string& object_name, const std::string& 
     gazebo::physics::ModelPtr object_model = _world->GetModel(object_name);
     if(!object_model)
     {
-        yError() << "Object " << object_name << " does not exist in gazebo";
+        yError() << "Attach --> Object " << object_name << " does not exist in gazebo";
         return false;
     }
-    else yInfo() << "Object " << object_model->GetName() << " found";
+    else yInfo() << "Attach --> Object " << object_model->GetName() << " found";
     
     gazebo::physics::LinkPtr object_link = object_model->GetLink(object_link_name);
     if(!object_link)
     {
-        yError() << "Object link " << object_link_name << " is not found";
+        yError() << "Attach --> Object link " << object_link_name << " is not found";
     }
-    else yInfo() << "Object link " << object_link->GetName() << " found"; 
+    else yInfo() << "Attach --> Object link " << object_link->GetName() << " found"; 
     
     gazebo::physics::ModelPtr robot_model = _world->GetModel(robot_name);
     if(!robot_model)
     {
-        yError() << "Robot model " << robot_name << " does not exist in gazebo";
+        yError() << "Attach --> Robot model " << robot_name << " does not exist in gazebo";
         return false;
     }
-    else yInfo() << "Robot model " << robot_model->GetName() << " found";
+    else yInfo() << "Attach --> Robot model " << robot_model->GetName() << " found";
     
     
     
     gazebo::physics::LinkPtr robot_link = robot_model->GetLink(robot_link_name);
     if(!robot_link)
     {
-        yError() << "Robot link " << robot_link_name << " is not found";
+        yError() << "Attach --> Robot link " << robot_link_name << " is not found";
         return false;
     }
-    else yInfo() << "Robot link " << robot_link->GetName() << " found";
+    else yInfo() << "Attach --> Robot link " << robot_link->GetName() << " found";
     
     //This is joint creation
     gazebo::physics::JointPtr joint;
     joint = _world->GetPhysicsEngine()->CreateJoint("fixed",object_model);
     if(!joint)
     {
-        yError() << "Unable to create joint";
+        yError() << "Attach --> Unable to create joint";
         return false;
     }
     
     if(!robot_link)   
     {
-        yError() << "Unable to get robot link: " << robot_link_name;
+        yError() << "Attach --> Unable to get robot link: " << robot_link_name;
         return false;
     }
     
     if(!object_link)
     {
-        yError() << "Unable to get object link: " << object_name;
+        yError() << "Attach --> Unable to get object link: " << object_name;
         return false;
     }
     
-    joint->SetName("magnet_joint");
+    std::string joint_name = object_link_name + "_magnet_joint";
+    joint->SetName(joint_name);
+    yInfo() << "Attach --> Magnet joint : " << joint->GetName() << " created";
+    
     joint->SetModel(object_model);
     joint->Load(object_link,robot_link,gazebo::math::Pose());
+    //Attach(prent_link,child_link)
     joint->Attach(object_link,robot_link);
     joint->SetHighStop(0,0);
     joint->SetLowStop(0,0);
@@ -82,35 +86,45 @@ bool ObjectAttacherServer::detach(const string& object_name, const std::string& 
     gazebo::physics::ModelPtr object_model = _world->GetModel(object_name);
     if(!object_model)
     {
-        yError() << "Object " << object_name << " does not exist in gazebo";
+        yError() << "Detach --> Object " << object_name << " does not exist in gazebo";
         return false;
     }
-    else yInfo() << "Object " << object_model->GetName() << " found";
+    else yInfo() << "Detach --> Object " << object_model->GetName() << " found";
     
     //yError() << "^^" << object_model->GetJointCount();
     
     gazebo::physics::LinkPtr object_link = object_model->GetLink(object_link_name);
     if(!object_link)
     {
-        yError() << "Object link " << object_link_name << " is not found";
+        yError() << "Detach --> Object link " << object_link_name << " is not found";
         return false;
     }
-    else yInfo() << "Object link " << object_link->GetName() << " found";
+    else yInfo() << "Detach --> Object link " << object_link->GetName() << " found";
     
+    std::string joint_name = object_name + "::" + object_link_name + "_magnet_joint";
+       
     //Get all the joints at the object link
     gazebo::physics::Joint_V joints_v = object_link->GetChildJoints();
     
     for(int i=0; i < joints_v.size(); i++)
     {
         std::string candidate_joint_name = joints_v[i]->GetScopedName();
-        if(candidate_joint_name == "magnet_joint")
+        yInfo() << "Detach --> Child joint " << candidate_joint_name << " found";
+        if(candidate_joint_name == joint_name)
         {
             gazebo::physics::JointPtr joint = joints_v[i];
+            
             if(!joint)
             {
-                yError() << "Joint not found";
+                yError() << "Detach --> Joint not found";
                 return false;
             }
+            else
+            {
+                joint->Detach();
+                yInfo() << "Detach --> Found joint : " << joint->GetName() << " detached"; 
+            }
+            
         }
     } 
     return true;

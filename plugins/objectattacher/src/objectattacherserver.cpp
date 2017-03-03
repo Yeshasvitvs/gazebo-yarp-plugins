@@ -89,11 +89,6 @@ bool ObjectAttacherServer::attach(const string& object_name, const std::string& 
         }
     }
     
-    
-    
-    
-    
-    
     return true;
 }
 

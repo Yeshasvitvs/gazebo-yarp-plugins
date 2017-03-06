@@ -746,6 +746,88 @@ bool WorldProxy::attach(const std::string& id, const std::string& link_name)
     return true;
 }
 
+bool WorldProxy::attachUnscoped(const string& object_name, const std::string& object_link_name, const std::string& robot_name, const string& robot_link_name)
+{
+    gazebo::physics::ModelPtr object_model = world->GetModel(object_name);
+    if(!object_model)
+    {
+        yError() << "Attach --> Object " << object_name << " does not exist in gazebo";
+        return false;
+    }
+    else yInfo() << "Attach --> Object " << object_model->GetName() << " found";
+    
+    gazebo::physics::LinkPtr object_link = object_model->GetLink(object_link_name);
+    if(!object_link)
+    {
+        yError() << "Attach --> Object link " << object_link_name << " is not found";
+    }
+    else yInfo() << "Attach --> Object link " << object_link->GetName() << " found"; 
+    
+    gazebo::physics::ModelPtr robot_model = world->GetModel(robot_name);
+    if(!robot_model)
+    {
+        yError() << "Attach --> Robot model " << robot_name << " does not exist in gazebo";
+        return false;
+    }
+    else yInfo() << "Attach --> Robot model " << robot_model->GetName() << " found";
+    
+    
+    //Get the exact link with only link name instead of full_scoped_link_name
+    gazebo::physics::Link_V robot_model_links = robot_model->GetLinks();
+    for(int i=0; i < robot_model_links.size(); i++)
+    {
+        //E.g iCub::l_hand::l_hand_base_link
+
+        std::string candidate_robot_link_name = robot_model_links[i]->GetScopedName();
+        
+        //Display all the links
+        //yInfo() << "Attach --> Full scoped Candidate robot link name: " << candidate_robot_link_name << " found";
+        
+        std::size_t lastcolon = candidate_robot_link_name.rfind(":");
+        std::string unscoped_robot_link_name = candidate_robot_link_name.substr(lastcolon+1,std::string::npos);
+        //yInfo() << "Attach --> Unscoped robot link name " << unscoped_robot_link_name;
+        
+        if(unscoped_robot_link_name == robot_link_name)
+        {
+            yInfo() << "Attach --> Full scoped Candidate robot link name: " << candidate_robot_link_name << " found";
+            gazebo::physics::LinkPtr robot_link = robot_model_links[i];
+            if(!robot_link)
+            {
+                yError() << "Attach --> Robot link " << robot_link_name << " is not found";
+                return false;
+            }
+            else yInfo() << "Attach --> Robot link " << robot_link->GetName() << " found";
+            
+            //This is joint creation
+            gazebo::physics::JointPtr joint;
+            joint = world->GetPhysicsEngine()->CreateJoint("fixed",object_model);
+            if(!joint)
+            {
+                yError() << "Attach --> Unable to create joint";
+                return false;
+            }
+            
+            std::string joint_name = object_link_name + "_magnet_joint";
+            joint->SetName(joint_name);
+            yInfo() << "Attach --> Magnet joint : " << joint->GetName() << " created";
+            
+            joint->SetModel(object_model);
+            joint->Load(object_link,robot_link,gazebo::math::Pose());
+            
+            //Attach(prent_link,child_link)
+            joint->Attach(object_link,robot_link);
+            
+            //Joint limits in case of joints other than fixed joint
+            //joint->SetHighStop(0,0);
+            //joint->SetLowStop(0,0);
+            //joint->SetLowerLimit(0,0);
+            break; 
+        }
+    }
+    
+    return true;
+}
+
 bool WorldProxy::detach(const std::string& id)
 {
     physics::ModelPtr object_model=world->GetModel(id);
@@ -766,6 +848,55 @@ bool WorldProxy::detach(const std::string& id)
     return true;
 }
 
+bool WorldProxy::detachUnscoped(const string& object_name, const std::string& object_link_name)
+{
+    gazebo::physics::ModelPtr object_model = world->GetModel(object_name);
+    if(!object_model)
+    {
+        yError() << "Detach --> Object " << object_name << " does not exist in gazebo";
+        return false;
+    }
+    else yInfo() << "Detach --> Object " << object_model->GetName() << " found";
+    
+    //yError() << "^^" << object_model->GetJointCount();
+    
+    gazebo::physics::LinkPtr object_link = object_model->GetLink(object_link_name);
+    if(!object_link)
+    {
+        yError() << "Detach --> Object link " << object_link_name << " is not found";
+        return false;
+    }
+    else yInfo() << "Detach --> Object link " << object_link->GetName() << " found";
+    
+    std::string joint_name = object_name + "::" + object_link_name + "_magnet_joint";
+       
+    //Get all the joints at the object link
+    gazebo::physics::Joint_V joints_v = object_link->GetChildJoints();
+    
+    for(int i=0; i < joints_v.size(); i++)
+    {
+        std::string candidate_joint_name = joints_v[i]->GetScopedName();
+        //yInfo() << "Detach --> Child joint " << candidate_joint_name << " found";
+        if(candidate_joint_name == joint_name)
+        {
+            gazebo::physics::JointPtr joint = joints_v[i];
+            
+            if(!joint)
+            {
+                yError() << "Detach --> Joint not found";
+                return false;
+            }
+            else
+            {
+                joint->Detach();
+                yInfo() << "Detach --> Found joint : " << joint->GetName() << " detached"; 
+            }
+            
+        }
+    } 
+    return true;
+
+}
 
 GazeboYarpPlugins::Pose WorldProxy::getPose(const std::string& id)
 {

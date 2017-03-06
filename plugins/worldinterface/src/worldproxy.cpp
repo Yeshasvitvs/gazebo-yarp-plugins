@@ -706,7 +706,7 @@ bool WorldProxy::attach(const std::string& id, const std::string& link_name)
     }*/
     
     physics::JointPtr joint;
-    joint = world->GetPhysicsEngine()->CreateJoint("revolute", object_model_1);
+    joint = world->GetPhysicsEngine()->CreateJoint("fixed", object_model_1);
     if( !joint )
     {
         yError() << "Unable to create joint";
@@ -736,8 +736,10 @@ bool WorldProxy::attach(const std::string& id, const std::string& link_name)
     joint->SetModel(object_model_1);
     joint->Load(parent_link, object_link, gazebo::math::Pose());
     joint->Attach(parent_link, object_link);
-    joint->SetHighStop(0, 0);
-    joint->SetLowStop(0, 0);
+    
+    //Joint limits in case of joints other than fixed joint
+    //joint->SetHighStop(0, 0);
+    //joint->SetLowStop(0, 0);
     //joint->SetParam("cfm", 0, 0);
     //yDebug() << object_model_1->GetJointCount() << object_model_2->GetJointCount();
 

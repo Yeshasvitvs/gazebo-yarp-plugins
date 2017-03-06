@@ -24,6 +24,12 @@ else()
     message(WARNING "Gazebo version is lower than 4.0, disabling worldinterface plugin.")
 endif()
 
+if( GAZEBO_VERSION VERSION_GREATER 3.9 )
+    add_subdirectory(objectattacher)
+else()
+    message(WARNING "Gazebo version is lower than 4.0, disabling worldinterface plugin.")
+endif()
+
 if( (NOT (GAZEBO_VERSION VERSION_LESS 6)) AND (NOT (YARP_VERSION VERSION_LESS 2.3.68)) )
     add_subdirectory(lasersensor)
 else()

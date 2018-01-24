@@ -43,7 +43,7 @@ ExplorationWrench::ExplorationWrench()
     tick = yarp::os::Time::now();
     duration_done = false;
     
-    force_limit = (0.25,0.25,0.25);
+    force_limit = (1,1,1);
     torque_limit =  (0.25,0.25,0.25);
 }
 
@@ -109,47 +109,39 @@ bool ExplorationWrench::setWrench(physics::ModelPtr& _model, yarp::os::Bottle& c
     wrenchPtr->duration = cmd.get(1).asDouble();
     wrenchPtr->frequency = 1/wrenchPtr->duration;
     
+    std::random_device seed; //Will be used to obtain a seed for the random number engine
+    std::mt19937 eng(seed()); //Standard mersenne_twister_engine seeded with seed()
+    
+    std::uniform_real_distribution<> randomInitForceX(-force_limit.x, force_limit.x);
+    std::uniform_real_distribution<> randomInitForceY(-force_limit.y, force_limit.y);
+    std::uniform_real_distribution<> randomInitForceZ(-force_limit.z, force_limit.z);
+    
+    std::uniform_real_distribution<> randomInitTorqueX(-torque_limit.x, torque_limit.x);
+    std::uniform_real_distribution<> randomInitTorqueY(-torque_limit.y, torque_limit.y);
+    std::uniform_real_distribution<> randomInitTorqueZ(-torque_limit.z, torque_limit.z);
+    
+    randomInitForce = new gazebo::math::Vector3(randomInitForceX(eng),randomInitForceY(eng),randomInitForceZ(eng));
+    randomInitTorque = new gazebo::math::Vector3(randomInitTorqueX(eng),randomInitTorqueY(eng),randomInitTorqueZ(eng));
     return true;
 }
 
 
 bool ExplorationWrench::applyWrench()
-{
-    std::random_device seed; //Will be used to obtain a seed for the random number engine
-    std::mt19937 eng(seed()); //Standard mersenne_twister_engine seeded with rd()
-        
-    std::uniform_real_distribution<> randomInitForceX(-force_limit.x, force_limit.x);
-    std::uniform_real_distribution<> randomInitForceY(-force_limit.y, force_limit.y);
-    std::uniform_real_distribution<> randomInitForceZ(-force_limit.z, force_limit.z);
-    
-    gazebo::math::Vector3 randomInitForce;
-    randomInitForce = (randomInitForceX(eng),randomInitForceY(eng),randomInitForceZ(eng));
-    
-    std::uniform_real_distribution<> randomInitTorqueX(-torque_limit.x, torque_limit.x);
-    std::uniform_real_distribution<> randomInitTorqueY(-torque_limit.y, torque_limit.y);
-    std::uniform_real_distribution<> randomInitTorqueZ(-torque_limit.z, torque_limit.z);
-            
-    gazebo::math::Vector3 randomInitTorque;
-    randomInitTorque = (randomInitTorqueX(eng),randomInitTorqueY(eng),randomInitTorqueZ(eng));
-    
-    yInfo() << "Initial Wrench Values : " << randomInitForce.x << " " << randomInitForce.y << " " << randomInitForce.z \
+{            
+    //yInfo() << "Initial Wrench Values : " << randomInitForce.x << " " << randomInitForce.y << " " << randomInitForce.z \
                                         << " " << randomInitTorque.x << " " << randomInitTorque.y << " " << randomInitTorque.z;
          
     tock = yarp::os::Time::now();
     double time_elapsed = tock-tick; 
     if( time_elapsed < wrenchPtr->duration)
     {
-        yInfo() << "Time elapsed: " << time_elapsed;
-        yInfo() << "Frequency:" << wrenchPtr->frequency;
-        yInfo() << "f*t: " << wrenchPtr->frequency*time_elapsed;
-        yInfo() << "Sine Value: " << sin(2*PI*wrenchPtr->frequency*time_elapsed);
-        wrenchPtr->force.x = randomInitForce.x*sin(2*PI*wrenchPtr->frequency*time_elapsed);
-        wrenchPtr->force.y = randomInitForce.y*sin(2*PI*wrenchPtr->frequency*time_elapsed);
-        wrenchPtr->force.z = randomInitForce.z*sin(2*PI*wrenchPtr->frequency*time_elapsed);
+        wrenchPtr->force.x = randomInitForce->x*sin(2*PI*wrenchPtr->frequency*time_elapsed);
+        wrenchPtr->force.y = randomInitForce->y*sin(2*PI*wrenchPtr->frequency*time_elapsed + 0.8*PI*wrenchPtr->frequency);
+        wrenchPtr->force.z = randomInitForce->z*sin(2*PI*wrenchPtr->frequency*time_elapsed - 0.25*PI*wrenchPtr->frequency);
         
-        wrenchPtr->torque.x = randomInitTorque.x*sin(2*PI*wrenchPtr->frequency*time_elapsed);
-        wrenchPtr->torque.y = randomInitTorque.y*sin(2*PI*wrenchPtr->frequency*time_elapsed);
-        wrenchPtr->torque.z = randomInitTorque.z*sin(2*PI*wrenchPtr->frequency*time_elapsed);
+        wrenchPtr->torque.x = randomInitTorque->x*sin(2*PI*wrenchPtr->frequency*time_elapsed)*0;
+        wrenchPtr->torque.y = randomInitTorque->y*sin(2*PI*wrenchPtr->frequency*time_elapsed)*0;
+        wrenchPtr->torque.z = randomInitTorque->z*sin(2*PI*wrenchPtr->frequency*time_elapsed)*0;
                    
         link->AddForce(wrenchPtr->force);
         link->AddTorque(wrenchPtr->torque);
@@ -185,6 +177,7 @@ bool ExplorationWrench::applyWrench()
 ExplorationWrench::~ExplorationWrench()
 {
     count--;
+    yInfo() << "Number of remaining wrenches: " << count;
 }
 
 

@@ -83,6 +83,9 @@ private:
     
     gazebo::math::Vector3 force_limit;
     gazebo::math::Vector3 torque_limit;
+    
+    gazebo::math::Vector3 *randomInitForce;
+    gazebo::math::Vector3 *randomInitTorque;
         
     std::unique_ptr<wrenchCommand> wrenchPtr{new wrenchCommand()};
     

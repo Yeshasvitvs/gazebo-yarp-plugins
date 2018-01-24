@@ -78,6 +78,7 @@ private:
         gazebo::math::Vector3 force;
         gazebo::math::Vector3 torque;
         double duration;
+        double frequency;
     };
     
     gazebo::math::Vector3 force_limit;
@@ -87,9 +88,7 @@ private:
     
    double tick;
    double tock;
-   gazebo::math::Vector3 *force_;
-   gazebo::math::Vector3 *torque_;
-   
+
    bool model_has_link;
    physics::ModelPtr model;
    physics::LinkPtr link;
@@ -109,9 +108,9 @@ public:
     ~ExplorationWrench();
     
     bool getLink();
-    bool generateExplorationWrench(physics::ModelPtr&,yarp::os::Bottle&);
     bool setWrench(physics::ModelPtr&, yarp::os::Bottle&);
-    void applyWrench();
+    bool applyWrench();
+    
 };
 
 #endif // EXPLORATIONWRENCH_H

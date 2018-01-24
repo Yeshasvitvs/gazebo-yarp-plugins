@@ -95,65 +95,96 @@ bool ExplorationWrench::getLink()
     return true;
 }
 
-bool ExplorationWrench::generateExplorationWrench(physics::ModelPtr& _model, yarp::os::Bottle& cmd)
+bool ExplorationWrench::setWrench(physics::ModelPtr& _model, yarp::os::Bottle& cmd)
 {
     model = _model;
-    wrenchPtr->link_name = cmd.get(1).asString();
+    wrenchPtr->link_name = cmd.get(0).asString();
     
-    if(getLink())
+    if(!getLink()) 
     {
-        wrenchPtr->duration = cmd.get(2).asDouble();
-        double frequency = 1/wrenchPtr->duration;
+        yError() << "ApplyExplorationWrench: specified link is not found in the gazebo model";
+        return false;
+    }
+    
+    wrenchPtr->duration = cmd.get(1).asDouble();
+    wrenchPtr->frequency = 1/wrenchPtr->duration;
+    
+    return true;
+}
+
+
+bool ExplorationWrench::applyWrench()
+{
+    std::random_device seed; //Will be used to obtain a seed for the random number engine
+    std::mt19937 eng(seed()); //Standard mersenne_twister_engine seeded with rd()
         
-        std::random_device seed; //Will be used to obtain a seed for the random number engine
-        std::mt19937 eng(seed()); //Standard mersenne_twister_engine seeded with rd()
+    std::uniform_real_distribution<> randomInitForceX(-force_limit.x, force_limit.x);
+    std::uniform_real_distribution<> randomInitForceY(-force_limit.y, force_limit.y);
+    std::uniform_real_distribution<> randomInitForceZ(-force_limit.z, force_limit.z);
+    
+    gazebo::math::Vector3 randomInitForce;
+    randomInitForce = (randomInitForceX(eng),randomInitForceY(eng),randomInitForceZ(eng));
+    
+    std::uniform_real_distribution<> randomInitTorqueX(-torque_limit.x, torque_limit.x);
+    std::uniform_real_distribution<> randomInitTorqueY(-torque_limit.y, torque_limit.y);
+    std::uniform_real_distribution<> randomInitTorqueZ(-torque_limit.z, torque_limit.z);
+            
+    gazebo::math::Vector3 randomInitTorque;
+    randomInitTorque = (randomInitTorqueX(eng),randomInitTorqueY(eng),randomInitTorqueZ(eng));
+    
+    yInfo() << "Initial Wrench Values : " << randomInitForce.x << " " << randomInitForce.y << " " << randomInitForce.z \
+                                        << " " << randomInitTorque.x << " " << randomInitTorque.y << " " << randomInitTorque.z;
+         
+    tock = yarp::os::Time::now();
+    double time_elapsed = tock-tick; 
+    if( time_elapsed < wrenchPtr->duration)
+    {
+        yInfo() << "Time elapsed: " << time_elapsed;
+        yInfo() << "Frequency:" << wrenchPtr->frequency;
+        yInfo() << "f*t: " << wrenchPtr->frequency*time_elapsed;
+        yInfo() << "Sine Value: " << sin(2*PI*wrenchPtr->frequency*time_elapsed);
+        wrenchPtr->force.x = randomInitForce.x*sin(2*PI*wrenchPtr->frequency*time_elapsed);
+        wrenchPtr->force.y = randomInitForce.y*sin(2*PI*wrenchPtr->frequency*time_elapsed);
+        wrenchPtr->force.z = randomInitForce.z*sin(2*PI*wrenchPtr->frequency*time_elapsed);
         
-        std::uniform_real_distribution<> randomInitForceX(-force_limit.x, force_limit.x);
-        std::uniform_real_distribution<> randomInitForceY(-force_limit.y, force_limit.y);
-        std::uniform_real_distribution<> randomInitForceZ(-force_limit.z, force_limit.z);
-        
-        
-        gazebo::math::Vector3 randomInitForce;
-        randomInitForce = (randomInitForceX(eng),randomInitForceY(eng),randomInitForceZ(eng));
+        wrenchPtr->torque.x = randomInitTorque.x*sin(2*PI*wrenchPtr->frequency*time_elapsed);
+        wrenchPtr->torque.y = randomInitTorque.y*sin(2*PI*wrenchPtr->frequency*time_elapsed);
+        wrenchPtr->torque.z = randomInitTorque.z*sin(2*PI*wrenchPtr->frequency*time_elapsed);
+                   
+        link->AddForce(wrenchPtr->force);
+        link->AddTorque(wrenchPtr->torque);
+            
+        math::Vector3 linkCoGPos = link->GetWorldCoGPose().pos;
+        math::Vector3 newZ = wrenchPtr->force.Normalize();
+        math::Vector3 newX = newZ.Cross(math::Vector3::UnitZ);
+        math::Vector3 newY = newZ.Cross(newX);
+        math::Matrix4 rotation = math::Matrix4 (newX[0],newY[0],newZ[0],0,newX[1],newY[1],newZ[1],0,newX[2],newY[2],newZ[2],0, 0, 0, 0, 1);
+        math::Quaternion forceOrientation = rotation.GetRotation();
+        math::Pose linkCoGPose (linkCoGPos - rotation*math::Vector3(0,0,0.075),forceOrientation);
         
         tock = yarp::os::Time::now();
-        double time_elapsed = tock-tick; 
-        if( time_elapsed < wrenchPtr->duration)
-        {
-            wrenchPtr->force.x = randomInitForce.x*sin(2*PI*frequency*time_elapsed);
-            wrenchPtr->force.y = randomInitForce.y*sin(2*PI*frequency*time_elapsed);
-            wrenchPtr->force.z = randomInitForce.z*sin(2*PI*frequency*time_elapsed);
-            
-            link->AddForce(wrenchPtr->force);
-            
-            math::Vector3 linkCoGPos = link->GetWorldCoGPose().pos;
-            math::Vector3 newZ = wrenchPtr->force.Normalize();
-            math::Vector3 newX = newZ.Cross(math::Vector3::UnitZ);
-            math::Vector3 newY = newZ.Cross(newX);
-            math::Matrix4 rotation = math::Matrix4 (newX[0],newY[0],newZ[0],0,newX[1],newY[1],newZ[1],0,newX[2],newY[2],newZ[2],0, 0, 0, 0, 1);
-            math::Quaternion forceOrientation = rotation.GetRotation();
-            math::Pose linkCoGPose (linkCoGPos - rotation*math::Vector3(0,0,0.075),forceOrientation);
         
-            tock = yarp::os::Time::now();
+        #if GAZEBO_MAJOR_VERSION >= 7
+            msgs::Set(m_visualMsg.mutable_pose(), linkCoGPose.Ign());
+        #else
+            msgs::Set(m_visualMsg.mutable_pose(), linkCoGPose);
+        #endif
         
-            #if GAZEBO_MAJOR_VERSION >= 7
-                msgs::Set(m_visualMsg.mutable_pose(), linkCoGPose.Ign());
-            #else
-                msgs::Set(m_visualMsg.mutable_pose(), linkCoGPose);
-            #endif
-          
-            msgs::Set(m_visualMsg.mutable_material()->mutable_ambient(),common::Color(color[0],color[1],color[2],color[3]));
-            m_visualMsg.set_visible(1);
-            m_visPub->Publish(m_visualMsg);
-            
-        }
-        else
-        {
-            m_visualMsg.set_visible(0);
-            m_visPub->Publish(m_visualMsg);
-            duration_done = true;
-        }
+        msgs::Set(m_visualMsg.mutable_material()->mutable_ambient(),common::Color(color[0],color[1],color[2],color[3]));
+        m_visualMsg.set_visible(1);
+        m_visPub->Publish(m_visualMsg);
     }
-
+    else
+    {
+        m_visualMsg.set_visible(0);
+        m_visPub->Publish(m_visualMsg);
+        duration_done = true;
+    }
 }
+
+ExplorationWrench::~ExplorationWrench()
+{
+    count--;
+}
+
 

@@ -4,8 +4,8 @@ PROJECT(Plugin_ExplorationWrench)
 
 include(AddGazeboYarpPluginTarget)
 
-set(explorationWrench_headers )
-set(explorationWrench_sources src/main.cpp)
+set(explorationWrench_headers include/explorationwrench.h)
+set(explorationWrench_sources src/main.cpp src/explorationwrench.cpp)
 
 set(LIB_COMMON_NAME gazebo_yarp_lib_common)
 if(CMAKE_VERSION VERSION_LESS 3.0.0)

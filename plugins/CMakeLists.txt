@@ -3,6 +3,7 @@ add_subdirectory(clock)
 add_subdirectory(controlboard)
 add_subdirectory(externalwrench)
 add_subdirectory(multiexternalwrench)
+add_subdirectory(explorationwrench)
 add_subdirectory(forcetorque)
 add_subdirectory(imu)
 

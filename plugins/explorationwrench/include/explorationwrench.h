@@ -75,6 +75,8 @@ private:
     struct wrenchCommand
     {
         std::string link_name;
+        bool force_flag;
+        bool torque_flag;
         gazebo::math::Vector3 force;
         gazebo::math::Vector3 torque;
         double duration;

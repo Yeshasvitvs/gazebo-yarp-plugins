@@ -136,15 +136,17 @@ void RPCServerThread::run()
         {
             this->m_reply.addVocab ( yarp::os::Vocab::encode ( "many" ) );
             this->m_reply.addString ( "Insert a command with the following format:" );
-            this->m_reply.addString ( "[link] [duration]" );
+            this->m_reply.addString ( "[link] [duration] [force_flag] [torque_flag]" );
             this->m_reply.addString ( "e.g. second_link_handle 10");
             this->m_reply.addString ( "[link]:     (string) Link ID of the robot as specified in robot's SDF" );
             this->m_reply.addString ( "[duration]: (double) Duration of the applied force in seconds" );
+            this->m_reply.addString ( "[force_flag]: (int) Set to 1 to apply exploration forces or else set to 0" );
+            this->m_reply.addString ( "[torque_flag]: (int) Set to 1 to apply torques or else set to 0" );
             this->m_reply.addString ( "Note: The reference frame is the base/root robot frame with x pointing backwards and z upwards.");
             this->m_rpcPort.reply ( this->m_reply );
         }
         else{
-            if((command.size() == 2) && command.get(0).isString() && (command.get(1).isDouble() || command.get(1).isInt()))
+            if((command.size() >= 2 && command.size() <= 4) && command.get(0).isString() && (command.get(1).isDouble() || command.get(1).isInt()) && command.get(2).isInt() && command.get(3).isInt())
             {
                 this->m_reply.addString ( "[ACK] Correct command format" );
                 this->m_rpcPort.reply ( m_reply );

@@ -44,6 +44,9 @@ ExplorationWrench::ExplorationWrench()
     
     force_limit = (1,1,1);
     torque_limit =  (0.25,0.25,0.25);
+    
+    wrenchPtr->force_flag = 0;
+    wrenchPtr->torque_flag = 0;
 }
 
 bool ExplorationWrench::getLink()
@@ -106,6 +109,8 @@ bool ExplorationWrench::setWrench(physics::ModelPtr& _model, yarp::os::Bottle& c
     }
     
     wrenchPtr->duration = cmd.get(1).asDouble();
+    wrenchPtr->force_flag = cmd.get(2).asInt();
+    wrenchPtr->torque_flag = cmd.get(3).asInt();
     
     std::random_device seed; //Will be used to obtain a seed for the random number engine
     std::mt19937 eng(seed()); //Standard mersenne_twister_engine seeded with seed()
@@ -133,13 +138,13 @@ bool ExplorationWrench::applyWrench()
     double time_elapsed = tock-tick; 
     if( time_elapsed < wrenchPtr->duration)
     {
-        wrenchPtr->force.x = randomInitForce->x*sin(2*PI*wrenchPtr->frequency*time_elapsed);
-        wrenchPtr->force.y = randomInitForce->y*sin(2*PI*wrenchPtr->frequency*time_elapsed + 0.8*PI*wrenchPtr->frequency);
-        wrenchPtr->force.z = randomInitForce->z*sin(2*PI*wrenchPtr->frequency*time_elapsed - 0.25*PI*wrenchPtr->frequency);
+        wrenchPtr->force.x = randomInitForce->x*sin(2*PI*wrenchPtr->frequency*time_elapsed) * wrenchPtr->force_flag;
+        wrenchPtr->force.y = randomInitForce->y*sin(2*PI*wrenchPtr->frequency*time_elapsed + 0.8*PI*wrenchPtr->frequency) * wrenchPtr->force_flag;
+        wrenchPtr->force.z = randomInitForce->z*sin(2*PI*wrenchPtr->frequency*time_elapsed - 0.25*PI*wrenchPtr->frequency) * wrenchPtr->force_flag;
         
-        wrenchPtr->torque.x = randomInitTorque->x*sin(2*PI*wrenchPtr->frequency*time_elapsed)*0;
-        wrenchPtr->torque.y = randomInitTorque->y*sin(2*PI*wrenchPtr->frequency*time_elapsed)*0;
-        wrenchPtr->torque.z = randomInitTorque->z*sin(2*PI*wrenchPtr->frequency*time_elapsed)*0;
+        wrenchPtr->torque.x = randomInitTorque->x*sin(2*PI*wrenchPtr->frequency*time_elapsed) * wrenchPtr->torque_flag;
+        wrenchPtr->torque.y = randomInitTorque->y*sin(2*PI*wrenchPtr->frequency*time_elapsed)* wrenchPtr->torque_flag;
+        wrenchPtr->torque.z = randomInitTorque->z*sin(2*PI*wrenchPtr->frequency*time_elapsed)* wrenchPtr->torque_flag;
                    
         link->AddForce(wrenchPtr->force);
         link->AddTorque(wrenchPtr->torque);

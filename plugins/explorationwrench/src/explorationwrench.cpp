@@ -32,7 +32,6 @@ int ExplorationWrench::count = 0;
 
 ExplorationWrench::ExplorationWrench()
 {
-    
     srand(rand()%100);
     color[0] = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
     color[1] = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
@@ -107,30 +106,29 @@ bool ExplorationWrench::setWrench(physics::ModelPtr& _model, yarp::os::Bottle& c
     }
     
     wrenchPtr->duration = cmd.get(1).asDouble();
-    wrenchPtr->frequency = 1/wrenchPtr->duration;
     
     std::random_device seed; //Will be used to obtain a seed for the random number engine
     std::mt19937 eng(seed()); //Standard mersenne_twister_engine seeded with seed()
     
-    std::uniform_real_distribution<> randomInitForceX(-force_limit.x, force_limit.x);
-    std::uniform_real_distribution<> randomInitForceY(-force_limit.y, force_limit.y);
-    std::uniform_real_distribution<> randomInitForceZ(-force_limit.z, force_limit.z);
+    std::uniform_real_distribution<> uniformFreqDist(0,1);
+    wrenchPtr->frequency = uniformFreqDist(eng);
     
-    std::uniform_real_distribution<> randomInitTorqueX(-torque_limit.x, torque_limit.x);
-    std::uniform_real_distribution<> randomInitTorqueY(-torque_limit.y, torque_limit.y);
-    std::uniform_real_distribution<> randomInitTorqueZ(-torque_limit.z, torque_limit.z);
+    std::uniform_real_distribution<> uniformForceXDist(-force_limit.x, force_limit.x);
+    std::uniform_real_distribution<> uniformForceYDist(-force_limit.y, force_limit.y);
+    std::uniform_real_distribution<> uniformForceZDist(-force_limit.z, force_limit.z);
     
-    randomInitForce = new gazebo::math::Vector3(randomInitForceX(eng),randomInitForceY(eng),randomInitForceZ(eng));
-    randomInitTorque = new gazebo::math::Vector3(randomInitTorqueX(eng),randomInitTorqueY(eng),randomInitTorqueZ(eng));
+    std::uniform_real_distribution<> uniformTorqueXDist(-torque_limit.x, torque_limit.x);
+    std::uniform_real_distribution<> uniformTorqueYDist(-torque_limit.y, torque_limit.y);
+    std::uniform_real_distribution<> uniformTorqueZDist(-torque_limit.z, torque_limit.z);
+    
+    randomInitForce = new gazebo::math::Vector3(uniformForceXDist(eng),uniformForceYDist(eng),uniformForceZDist(eng));
+    randomInitTorque = new gazebo::math::Vector3(uniformTorqueXDist(eng),uniformTorqueYDist(eng),uniformTorqueZDist(eng));
     return true;
 }
 
 
 bool ExplorationWrench::applyWrench()
 {            
-    //yInfo() << "Initial Wrench Values : " << randomInitForce.x << " " << randomInitForce.y << " " << randomInitForce.z \
-                                        << " " << randomInitTorque.x << " " << randomInitTorque.y << " " << randomInitTorque.z;
-         
     tock = yarp::os::Time::now();
     double time_elapsed = tock-tick; 
     if( time_elapsed < wrenchPtr->duration)

@@ -117,7 +117,6 @@ void RPCServerThread::setRobotModel(physics::ModelPtr robotModel)
 
 bool RPCServerThread::threadInit()
 {
-
     if(!m_rpcPort.open(std::string ("/"+m_robotName + "/applyExplorationWrench/rpc:i").c_str()))
     {
         yError() << "ApplyExplorationWrench: RPC port /applyExplorationWrench failed to open";
@@ -145,7 +144,7 @@ void RPCServerThread::run()
             this->m_rpcPort.reply ( this->m_reply );
         }
         else{
-            if(command.get(0).isString() && (command.get(1).isDouble() || command.get(1).isInt()))
+            if((command.size() == 2) && command.get(0).isString() && (command.get(1).isDouble() || command.get(1).isInt()))
             {
                 this->m_reply.addString ( "[ACK] Correct command format" );
                 this->m_rpcPort.reply ( m_reply );

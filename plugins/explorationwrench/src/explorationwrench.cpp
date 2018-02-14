@@ -115,7 +115,7 @@ bool ExplorationWrench::setWrench(physics::ModelPtr& _model, yarp::os::Bottle& c
     std::random_device seed; //Will be used to obtain a seed for the random number engine
     std::mt19937 eng(seed()); //Standard mersenne_twister_engine seeded with seed()
     
-    std::uniform_real_distribution<> uniformFreqDist(0,1);
+    std::uniform_real_distribution<> uniformFreqDist(0,0.3);
     wrenchPtr->frequency = uniformFreqDist(eng);
     
     std::uniform_real_distribution<> uniformForceXDist(-force_limit.x, force_limit.x);

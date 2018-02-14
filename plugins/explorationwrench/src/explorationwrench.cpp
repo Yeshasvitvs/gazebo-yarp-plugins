@@ -81,7 +81,7 @@ bool ExplorationWrench::getLink()
             msgs::Geometry *geomMsg = m_visualMsg.mutable_geometry();
             geomMsg->set_type(msgs::Geometry::CYLINDER);
             geomMsg->mutable_cylinder()->set_radius(0.0015);
-            geomMsg->mutable_cylinder()->set_length(.15);
+            geomMsg->mutable_cylinder()->set_length(.05);
 
             // Don't cast shadows
             m_visualMsg.set_cast_shadows(false);

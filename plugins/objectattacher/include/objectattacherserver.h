@@ -26,14 +26,14 @@ namespace gazebo
 {
   class ObjectAttacherServer: public GazeboYarpPlugins::ObjectAttacher
   {
-  private:  
+  private:
      gazebo::physics::WorldPtr _world;
      gazebo::physics::ModelPtr _model;
-     
+
    public:
      ObjectAttacherServer();
      ~ObjectAttacherServer();
-     
+
      /**
       * Attach an object to a link of the robot.
       * @param id string that identifies object in gazebo (returned after creation)
@@ -48,7 +48,7 @@ namespace gazebo
      * @return true if success, false otherwise
      */
      virtual bool detachUnscoped(const std::string& object_name, const std::string& object_link_name);
-     
+
      /**
      * Enable/disables gravity for an object
      * @param id object id
@@ -56,19 +56,19 @@ namespace gazebo
      * @return returns true or false on success failure
      */
      virtual bool enableGravity(const std::string& id, const bool enable);
-     
+
      void attachWorldPointer(gazebo::physics::WorldPtr p)
      {
          _world=p;
     }
-    
+
     void attachModelPointer(gazebo::physics::ModelPtr p)
     {
-        _model=p; 
+        _model=p;
     }
 
   };
-  
+
 }
 
 #endif
